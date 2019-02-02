@@ -19,4 +19,15 @@ python scrapper.py -h
 
 please check usage with
 ```
-python scrapper.py -h```
+python scrapper.py -h
+```
+
+# keys
+check `keys_sample.yaml` for required keys
+
+## how do i get my keys?
+follow [this guide](https://developer.twitter.com/en/docs/basics/authentication/guides/access-tokens.html)
+
+# TODO
+* database saving
+* allow for specific fields
