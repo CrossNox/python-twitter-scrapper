@@ -10,6 +10,7 @@ import sys
 from pprint import pprint
 import datetime
 import time
+import click
 
 logging.basicConfig(
     format='%(levelname)s %(asctime)s: %(message)s',
@@ -117,7 +118,14 @@ if __name__ == "__main__":
         # if no out file was passed, output is discarded
         if args.out and not args.out.endswith('.json'):
             args.out += '.json'
-        with open(args.out if args.out else os.devnull, "w") as out:
+
+        overwrite = False
+        if os.path.isfile(args.out):
+            if click.confirm('file {} already exists. Overwrite?'.format(args.out), default=True):
+                overwrite = True
+        flag = 'w' if overwrite else 'a'
+
+        with open(args.out if args.out else os.devnull, flag) as out:
             i = 0
             try:
                 for tweet in get_tweets(api, args.mode, args.keywords, retweets=args.retweets):
