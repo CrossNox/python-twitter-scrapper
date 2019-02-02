@@ -8,12 +8,12 @@ import logging
 import os
 import json
 import sys
-import pprint
+from pprint import pprint
 import datetime
 
 logging.basicConfig(
         format='%(levelname)s %(asctime)s: %(message)s',
-        level=logging.INFO
+        level=logging.DEBUG
     )
 log = logging.getLogger(__name__)
 
@@ -41,11 +41,24 @@ KW_QS = {
     'search': 'q'
 }
 
+def search_filter(tweet, retweets):
+    return True
 
-def get_tweets(mode, keywords):
-    r = api.request(ENDPOINTS[mode], {KW_QS[mode]: keywords})
+def stream_filter(tweet, retweets):
+    if retweets:
+        return True
+    return 'retweeted_status' not in tweet
+
+def get_tweets(api, mode, keywords, retweets=False):
+    log.info("mode: {}, keywords: {}, retweets: {}".format(mode, keywords, retweets))
+    params = {KW_QS[mode]: keywords}
+    if mode == 'search' and not retweets:
+        params['-filter']='retweets'
+    r = api.request(ENDPOINTS[mode], params)
+    tweet_filter = search_filter if mode == 'search' else stream_filter
     for item in r:
-        yield item['text'] if 'text' in item else item
+        if tweet_filter(item, retweets):
+            yield item
 
 def get_quota(api):
     r = api.request('application/rate_limit_status').json()
@@ -65,6 +78,7 @@ if __name__ == "__main__":
     parser.add_argument('--mode', '-m', required='-q' not in sys.argv, type=str, choices=['stream', 'search'])
     parser.add_argument('--quota', '-q', action='store_true', help='output the remaining quota')
     parser.add_argument('--authfile', '-a', type=str, default='keys.yaml', help='path of the yaml containing the auth keys')
+    parser.add_argument('--limit', '-l', type=int, help='max number of tweets to retrieve (0 indicates no limit)', default=0)
     args = parser.parse_args()
 
     api = TwitterAPI(**read_credentials(args.authfile))
@@ -73,7 +87,12 @@ if __name__ == "__main__":
         quota = get_quota(api)
         pprint.pprint(quota)
     else:
-        with open(args.out if args.out else os.devnull) as f:
+        with open(args.out if args.out else os.devnull, "w") as out:
+            i = 0
             for tweet in get_tweets(api, args.mode, args.keywords, retweets=args.retweets):
-                logger.info(str(tweet))
+                pprint(tweet)
                 out.write(json.dumps(tweet))
+                out.write(os.linesep)
+                i += 1
+                if args.limit != 0 and args.limit == i:
+                    break
