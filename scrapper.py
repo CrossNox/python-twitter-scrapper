@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import TwitterAPI
 import yaml
 from TwitterAPI import TwitterAPI, TwitterRequestError, TwitterConnectionError
 import argparse
